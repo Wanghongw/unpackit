@@ -17,13 +17,13 @@ Unpack a file:
 
 ```go
     file, _ := os.Open(test.filepath)
-    destPath, err := unpackit.Unpack(file, tempDir)
+    destPath, err := unpackit.Unpack(file, tempDir, "xxx", 4*1024)
 ```
 
 Unpack a stream (such as a http.Response):
 
 ```go
     res, err := http.Get(url)
-    destPath, err := unpackit.Unpack(res.Body, tempDir)
+    destPath, err := unpackit.Unpack(res.Body, tempDir, "xxx", 4*1024)
 ```
 
