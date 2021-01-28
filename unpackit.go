@@ -82,6 +82,7 @@ func magicNumber(reader *bufio.Reader, offset int) (string, error) {
 // decompressor and/or unarchiver to use.
 // when unpack not .gz files, unTarName set "", unTarGzSize set 4096
 // when pack .gz files, unTarName set user-defined value, unTarGzSize set user-defined size
+// Notice:Concurrent Environment!!! should notice your files' name! Each gorountine should has a unique name!
 func Unpack(reader io.Reader, destPath string, unTarName string, unTarGzSize int) (string, error) {
 	var err error
 	if destPath == "" {
