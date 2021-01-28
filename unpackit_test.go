@@ -24,6 +24,7 @@ func TestUnpack(t *testing.T) {
 		filepath string
 		files    int
 	}{
+		{"./fixtures/test2.tar.gz", 4},
 		{"./fixtures/test.tar.bzip2", 2},
 		{"./fixtures/test.tar.gz", 2},
 		{"./fixtures/test.tar.xz", 2},
@@ -31,22 +32,21 @@ func TestUnpack(t *testing.T) {
 		{"./fixtures/filetest.zip", 3},
 		{"./fixtures/test.tar", 2},
 		{"./fixtures/cfgdrv.iso", 1},
-		{"./fixtures/test2.tar.gz", 4},
 		{"./fixtures/tar-without-directory-entries.tar.gz", 1},
 		{"./fixtures/testfolder.zip", 3},
+		{"./fixtures/abc.json.gz", 1},
 	}
-
 	for _, test := range tests {
 		t.Run(test.filepath, func(t *testing.T) {
-			tempDir, err := ioutil.TempDir(os.TempDir(), "unpackit-tests-"+path.Base(test.filepath)+"-")
-			assert.Ok(t, err)
+			tempDir := "./fixtures/unpackit-tests-" + path.Base(test.filepath)
+			fmt.Println("tempDir>>>>> ", tempDir)
 			defer os.RemoveAll(tempDir)
 
 			file, err := os.Open(test.filepath)
 			assert.Ok(t, err)
 			defer file.Close()
 
-			destPath, err := Unpack(file, tempDir)
+			destPath, err := Unpack(file, tempDir, "xxx", 4*1024)
 			assert.Ok(t, err)
 
 			length := calcNumberOfFiles(t, destPath)

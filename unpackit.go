@@ -74,9 +74,15 @@ func magicNumber(reader *bufio.Reader, offset int) (string, error) {
 	return "", nil
 }
 
+//func getGzReader(gzr *gzip.Reader, size int) *bufio.Reader {
+//	return bufio.NewReaderSize(gzr, 500*1024)
+//}
+
 // Unpack unpacks a compressed stream. Magic numbers are used to determine what
 // decompressor and/or unarchiver to use.
-func Unpack(reader io.Reader, destPath string) (string, error) {
+// when unpack not .gz files, unTarName set "", unTarGzSize set 4096
+// when pack .gz files, unTarName set user-defined value, unTarGzSize set user-defined size
+func Unpack(reader io.Reader, destPath string, unTarName string, unTarGzSize int) (string, error) {
 	var err error
 	if destPath == "" {
 		destPath, err = ioutil.TempDir(os.TempDir(), "unpackit-")
@@ -84,20 +90,16 @@ func Unpack(reader io.Reader, destPath string) (string, error) {
 			return "", err
 		}
 	}
-
 	// Makes sure destPath exists
-	if err := os.MkdirAll(destPath, 0740); err != nil {
+	if err := os.MkdirAll(destPath, os.ModePerm); err != nil {
 		return "", err
 	}
-
 	r := bufio.NewReader(reader)
-
 	// Reads magic number from the stream so we can better determine how to proceed
 	ftype, err := magicNumber(r, 0)
 	if err != nil {
 		return "", err
 	}
-
 	var decompressingReader *bufio.Reader
 	switch ftype {
 	case "gzip":
@@ -105,14 +107,15 @@ func Unpack(reader io.Reader, destPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
 		defer func() {
 			if err := gzr.Close(); err != nil {
 				fmt.Printf("%+v", errors.Wrapf(err, "unpackit: failed closing gzip reader"))
 			}
 		}()
-
-		decompressingReader = bufio.NewReader(gzr)
+		// TODO:注意这里相当于：bufio.NewReaderSize(gzr, 4096)，如果不是tar包并且文件大小超出了4k，会丢失数据
+		// TODO:需要加大一下缓冲区的大小！
+		// decompressingReader = bufio.NewReader(gzr)
+		decompressingReader = bufio.NewReaderSize(gzr, unTarGzSize)
 	case "xz":
 		xzr, err := xz.NewReader(r)
 		if err != nil {
@@ -139,6 +142,7 @@ func Unpack(reader io.Reader, destPath string) (string, error) {
 		return Unzip(r, destPath)
 	default:
 		// maybe it is a tarball file
+		fmt.Println("进入了default!!!!! ")
 		decompressingReader = r
 	}
 
@@ -152,7 +156,7 @@ func Unpack(reader io.Reader, destPath string) (string, error) {
 	}
 
 	// If it's not a TAR archive then save it to disk as is.
-	destRawFile := filepath.Join(destPath, sanitize(path.Base("unknown-pack")))
+	destRawFile := filepath.Join(destPath, sanitize(path.Base(unTarName)))
 
 	// Creates destination file
 	destFile, err := os.Create(destRawFile)
